@@ -1,6 +1,10 @@
 flask
+gunicorn
+opencv-python
+pillow
 torch
 facenet-pytorch
-opencv-python
 numpy
-pillow
+pandas
+gtts
+reportlab
