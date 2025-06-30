@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Daftar Presensi</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+</head>
+<body class="bg-light">
+    <div class="container mt-5">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2>Riwayat Presensi</h2>
+            <div>
+                <a href="/download_presensi_pdf" class="btn btn-success">Download Rekap</a>
+                <a href="/dataset" class="btn btn-secondary">Kembali</a>
+            </div>
+        </div>
+
+        <table class="table table-bordered table-striped">
+            <thead class="table-dark">
+                <tr>
+                    <th>No</th>
+                    <th>Nama</th>
+                    <th>Tanggal</th>
+                    <th>Jam</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in data %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ row.Nama }}</td>
+                    <td>{{ row.Tanggal }}</td>
+                    <td>{{ row.Jam }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" class="text-center">Belum ada data presensi</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
