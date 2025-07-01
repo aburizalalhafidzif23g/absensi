@@ -6,11 +6,17 @@ const result = document.getElementById('result');
 const audioSuccess = new Audio('/static/sukses.mp3');
 const audioUnknown = new Audio('/static/gagal.mp3');
 
+// Aktifkan kamera
 navigator.mediaDevices.getUserMedia({ video: true })
   .then(stream => {
     video.srcObject = stream;
+  })
+  .catch(err => {
+    console.error("Gagal akses kamera:", err);
+    alert("Tidak bisa mengakses kamera: " + err.message);
   });
 
+// Tombol presensi
 captureBtn.addEventListener('click', () => {
   const canvas = document.createElement('canvas');
   canvas.width = video.videoWidth;
@@ -23,15 +29,19 @@ captureBtn.addEventListener('click', () => {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ image: imageData })
   })
-  .then(response => response.json())
-  .then(data => {
-    const name = data.identity;
-    result.textContent = "Terdeteksi: " + name;
+    .then(response => response.json())
+    .then(data => {
+      const name = data.identity;
+      result.textContent = "Terdeteksi: " + name;
 
-    if (name === "Tidak Dikenal") {
-      audioUnknown.play();
-    } else {
-      audioSuccess.play();
-    }
-  });
+      if (name === "Tidak Dikenal") {
+        audioUnknown.play();
+      } else {
+        audioSuccess.play();
+      }
+
+      setTimeout(() => {
+        window.location.reload();
+      }, 5000);
+    });
 });

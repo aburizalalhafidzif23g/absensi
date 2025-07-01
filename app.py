@@ -10,8 +10,10 @@ from flask import send_file
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from io import BytesIO
+from flask import send_from_directory
 
 app = Flask(__name__)
+app.static_folder = 'dataset'
 app.secret_key = "rahasia_kunci_super"
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -131,27 +133,56 @@ def edit_name(old_name):
     if not session.get('admin'):
         return redirect('/login')
 
+    person_dir = os.path.join(DATASET_DIR, old_name)
+    image_path = None
+
+    # Cek dan ambil foto pertama dari folder pengguna
+    if os.path.exists(person_dir):
+        files = os.listdir(person_dir)
+        if files:
+            image_path = f"/dataset/{old_name}/{files[0]}"
+
     if request.method == 'POST':
         new_name = request.form['new_name']
+        file = request.files.get('new_image')
         old_path = os.path.join(DATASET_DIR, old_name)
         new_path = os.path.join(DATASET_DIR, new_name)
+    
+        # Rename folder jika nama berubah
+        if old_name != new_name:
+            if os.path.exists(new_path):
+                return f"<script>alert('Nama \"{new_name}\" sudah ada.');window.location='/edit/{old_name}';</script>"
+            os.rename(old_path, new_path)
 
-        if os.path.exists(new_path):
-            return f"<script>alert('Nama \"{new_name}\" sudah ada. Silakan pilih nama lain.');window.location='/edit/{old_name}';</script>"
+        # Ganti gambar jika ada file baru
+        if file and file.filename != '':
+            filename = secure_filename(file.filename)
+            save_path = os.path.join(new_path, filename)
+            file.save(save_path)
 
-        # Rename folder
-        os.rename(old_path, new_path)
+            img = Image.open(save_path).convert("RGB")
+            face = mtcnn(img)
+            if face is not None:
+                embedding = resnet(face.unsqueeze(0).to(device)).detach().cpu().numpy()
+                embeddings[new_name] = embedding
+            else:
+                return f"<script>alert('Wajah tidak terdeteksi dari gambar baru!');window.location='/edit/{new_name}';</script>"
+        else:
+            # Jika tidak ada gambar baru, tetap gunakan embedding lama
+            if old_name in embeddings:
+                embeddings[new_name] = embeddings.pop(old_name)
 
-        # Update embeddings
-        if old_name in embeddings:
-            embeddings[new_name] = embeddings.pop(old_name)
-            with open("embeddings.pkl", "wb") as f:
-                pickle.dump(embeddings, f)
+        # Simpan kembali embeddings
+        with open("embeddings.pkl", "wb") as f:
+            pickle.dump(embeddings, f)
 
         return redirect('/dataset')
 
-    return render_template("edit.html", old_name=old_name)
+    return render_template("edit.html", old_name=old_name, image_path=image_path)
 
+@app.route('/dataset/<path:filename>')
+def serve_dataset_image(filename):
+    return send_from_directory(DATASET_DIR, filename)
 
 @app.route('/delete/<name>')
 def delete_name(name):
